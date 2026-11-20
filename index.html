@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>P&L Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Banker-inspired palette */
+            --accent: #b8520a;          /* signature terracotta */
+            --accent-dark: #8f3f08;
+            --accent-soft: #fbf2eb;
+            --ink: #212529;             /* near-black for headings */
+            --text: #666666;            /* muted body */
+            --text-light: #999999;
+            --bg: #f8f9fa;              /* light section bg */
+            --card-bg: #ffffff;
+            --line: #e9ecef;            /* subtle hairline */
+            --line-strong: #dee2e6;
+            --radius: 0px;               /* Banker cards have 0 radius */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body { background: var(--bg); }
+        body {
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* ===== Top bar (like Banker site navbar) ===== */
+        .topbar {
+            background: var(--ink);
+            color: #fff;
+            padding: 14px 0;
+        }
+        .topbar .inner {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .brand {
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: 0.4px;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand .dot {
+            width: 8px; height: 8px; background: var(--accent); display: inline-block;
+        }
+        .brand small {
+            color: rgba(255,255,255,0.55);
+            font-weight: 400;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-left: 4px;
+        }
+        .topbar .meta {
+            font-size: 11px;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        /* ===== Main container ===== */
+        main {
+            flex: 1;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        /* ===== Page title ===== */
+        .page-head {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .page-head .eyebrow {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .page-head h1 {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--ink);
+            letter-spacing: -0.4px;
+            line-height: 1.15;
+        }
+        .page-head p {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        /* ===== Section card ===== */
+        .section {
+            background: var(--card-bg);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 24px 22px;
+            margin-bottom: 20px;
+            transition: border-color 0.2s ease;
+        }
+        .section.active { border-color: var(--line-strong); }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--line);
+        }
+        .section-head h2 {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-head h2::before {
+            content: "";
+            width: 14px; height: 2px;
+            background: var(--accent);
+            display: inline-block;
+        }
+        .section-head .step {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-light);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .section.active .section-head .step { color: var(--accent); }
+
+        /* Status dot */
+        .status-dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: var(--line-strong);
+            margin-left: 6px;
+        }
+        .section.active .status-dot {
+            background: var(--accent);
+        }
+
+        /* ===== Inputs ===== */
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .input-row.full-width { grid-template-columns: 1fr; }
+
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper { position: relative; }
+
+        input {
+            width: 100%;
+            padding: 11px 12px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--ink);
+            background: #fff;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius);
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            -moz-appearance: textfield;
+        }
+        input::-webkit-outer-spinbutton,
+        input::-webkit-inner-spinbutton { -webkit-appearance: none; margin: 0; }
+        input::placeholder { color: var(--text-light); font-weight: 400; }
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-soft);
+        }
+
+        /* Auto-filled fields (derived values) get a subtle tint */
+        input.derived {
+            background-color: var(--bg);
+            color: var(--ink);
+        }
+
+        /* Read-only profit field — accent treatment */
+        input[readonly] {
+            background-color: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent-dark);
+            font-weight: 800;
+            cursor: default;
+        }
+
+        .suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-light);
+            pointer-events: none;
+        }
+
+        /* Disabled section (Phase 2 locked) */
+        .disabled-section {
+            opacity: 0.55;
+            pointer-events: none;
+            filter: grayscale(0.4);
+        }
+        .disabled-section .section-head h2::before { background: var(--line-strong); }
+
+        /* ===== Footer ===== */
+        footer {
+            background: var(--ink);
+            color: rgba(255,255,255,0.55);
+            padding: 18px 20px;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 0.4px;
+        }
+        footer .accent-bar {
+            height: 2px;
+            background: var(--accent);
+            margin-bottom: 14px;
+            width: 40px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
+
+        /* Small screens */
+        @media (max-width: 480px) {
+            main { padding: 24px 16px 36px; }
+            .section { padding: 20px 16px; }
+            .page-head h1 { font-size: 24px; }
+            .input-row { gap: 12px; }
+            input { font-size: 15px; padding: 10px 11px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== Top bar ===== -->
+    <header class="topbar">
+        <div class="inner">
+            <a href="#" class="brand">
+                <span class="dot"></span>
+                P&L
+                <small>Calculator</small>
+            </a>
+            <span class="meta">Live</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- ===== Page title ===== -->
+        <div class="page-head">
+            <div class="eyebrow">Position &amp; Profit</div>
+            <h1>P&L Calculator</h1>
+            <p>Enter any two values in each section. The rest are computed automatically.</p>
+        </div>
+
+        <!-- ===== PHASE 1: BASE DATA ===== -->
+        <section class="section" id="baseSection">
+            <div class="section-head">
+                <h2>Current Position <span class="status-dot"></span></h2>
+                <span class="step">Step 01</span>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="qty">Qty</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="qty" inputmode="decimal" placeholder="0" autocomplete="off">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="avgRate">Avg Rate</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="avgRate" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="invAmt">Inv. Amount (Value)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="invAmt" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                    <span class="suffix">CUR</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== PHASE 2: PROJECTION ===== -->
+        <section class="section disabled-section" id="projSection">
+            <div class="section-head">
+                <h2>Target &amp; Profit <span class="status-dot"></span></h2>
+                <span class="step">Step 02</span>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="pctIncrease">Profit %</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="pctIncrease" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                        <span class="suffix">%</span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="newRate">New Rate</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="newRate" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="expAmt">Exp. Amount</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="expAmt" inputmode="decimal" placeholder="0.00" autocomplete="off">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="profitEarned">Profit Earned</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="profitEarned" readonly placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== Footer ===== -->
+    <footer>
+        <div class="accent-bar"></div>
+        Built for clarity. Powered by your numbers.
+    </footer>
+
+    <script>
+        // --- Elements ---
+        const baseInputs = {
+            qty: document.getElementById('qty'),
+            avgRate: document.getElementById('avgRate'),
+            invAmt: document.getElementById('invAmt')
+        };
+
+        const projInputs = {
+            pctIncrease: document.getElementById('pctIncrease'),
+            newRate: document.getElementById('newRate'),
+            expAmt: document.getElementById('expAmt'),
+            profitEarned: document.getElementById('profitEarned')
+        };
+
+        const projSection = document.getElementById('projSection');
+        const baseSection = document.getElementById('baseSection');
+        let isCalculating = false;
+
+        // --- Utility ---
+        function getVal(input) {
+            const v = parseFloat(input.value);
+            return isNaN(v) ? null : v;
+        }
+
+        function setVal(input, val) {
+            if (val === null || isNaN(val)) {
+                input.value = '';
+                return;
+            }
+            const formatted = parseFloat(val.toFixed(2));
+            input.value = formatted;
+        }
+
+        // --- PHASE 1 LOGIC ---
+        function handleBaseCalculation(sourceId) {
+            if (isCalculating) return;
+
+            const q = getVal(baseInputs.qty);
+            const r = getVal(baseInputs.avgRate);
+            const a = getVal(baseInputs.invAmt);
+
+            let baseValid = false;
+
+            if (sourceId !== 'invAmt' && q !== null && r !== null) {
+                isCalculating = true;
+                setVal(baseInputs.invAmt, q * r);
+                isCalculating = false;
+                baseValid = true;
+            }
+            else if (sourceId !== 'avgRate' && q !== null && a !== null && q !== 0) {
+                isCalculating = true;
+                setVal(baseInputs.avgRate, a / q);
+                isCalculating = false;
+                baseValid = true;
+            }
+            else if (sourceId !== 'qty' && r !== null && a !== null && r !== 0) {
+                isCalculating = true;
+                setVal(baseInputs.qty, a / r);
+                isCalculating = false;
+                baseValid = true;
+            }
+
+            // Check if we should enable Phase 2
+            if (q !== null && r !== null && a !== null && q > 0 && r > 0) {
+                projSection.classList.remove('disabled-section');
+                baseSection.classList.add('active');
+
+                const currentExp = getVal(projInputs.expAmt);
+                if(currentExp !== null) {
+                    isCalculating = true;
+                    setVal(projInputs.profitEarned, currentExp - a);
+                    isCalculating = false;
+                }
+
+            } else {
+                projSection.classList.add('disabled-section');
+                baseSection.classList.remove('active');
+                if(!isCalculating) clearProjection();
+            }
+        }
+
+        // --- PHASE 2 LOGIC ---
+        function handleProjectionCalculation(sourceId) {
+            if (projSection.classList.contains('disabled-section')) return;
+            if (isCalculating) return;
+
+            const q = getVal(baseInputs.qty);
+            const baseR = getVal(baseInputs.avgRate);
+            const baseA = getVal(baseInputs.invAmt);
+
+            if (q === null || baseR === null || baseA === null) return;
+
+            const p = getVal(projInputs.pctIncrease);
+            const newR = getVal(projInputs.newRate);
+            const expA = getVal(projInputs.expAmt);
+
+            isCalculating = true;
+
+            if (sourceId === 'pctIncrease' && p !== null) {
+                const calculatedRate = baseR * (1 + (p / 100));
+                const calculatedExpAmt = calculatedRate * q;
+
+                setVal(projInputs.newRate, calculatedRate);
+                setVal(projInputs.expAmt, calculatedExpAmt);
+                setVal(projInputs.profitEarned, calculatedExpAmt - baseA);
+            }
+            else if (sourceId === 'newRate' && newR !== null) {
+                const calculatedPct = ((newR - baseR) / baseR) * 100;
+                const calculatedExpAmt = newR * q;
+
+                setVal(projInputs.pctIncrease, calculatedPct);
+                setVal(projInputs.expAmt, calculatedExpAmt);
+                setVal(projInputs.profitEarned, calculatedExpAmt - baseA);
+            }
+            else if (sourceId === 'expAmt' && expA !== null) {
+                const calculatedRate = expA / q;
+                const calculatedPct = ((calculatedRate - baseR) / baseR) * 100;
+
+                setVal(projInputs.newRate, calculatedRate);
+                setVal(projInputs.pctIncrease, calculatedPct);
+                setVal(projInputs.profitEarned, expA - baseA);
+            }
+
+            isCalculating = false;
+        }
+
+        function clearProjection() {
+            projInputs.pctIncrease.value = '';
+            projInputs.newRate.value = '';
+            projInputs.expAmt.value = '';
+            projInputs.profitEarned.value = '';
+        }
+
+        // --- Event Listeners ---
+        Object.keys(baseInputs).forEach(key => {
+            baseInputs[key].addEventListener('input', () => handleBaseCalculation(key));
+        });
+
+        Object.keys(projInputs).forEach(key => {
+            if(key !== 'profitEarned') {
+                projInputs[key].addEventListener('input', () => handleProjectionCalculation(key));
+            }
+        });
+    </script>
+
+</body>
+</html>
