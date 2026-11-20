@@ -2,25 +2,55 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>P&L Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f8f9fa" media="(prefers-color-scheme: light)">
+    <title>Inventory P&L</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
+        /* ===== Dark theme (default, applies to <html>) ===== */
         :root {
-            /* Banker-inspired palette */
-            --accent: #b8520a;          /* signature terracotta */
+            --accent: #e76f30;            /* brighter terracotta for dark bg */
+            --accent-dark: #f08a4d;
+            --accent-soft: rgba(231, 111, 48, 0.10);
+            --accent-ring: rgba(231, 111, 48, 0.30);
+
+            --ink: #f0f3f5;               /* light headings on dark */
+            --text: #a8b0b8;
+            --text-light: #6c757d;
+
+            --bg: #0d1117;                 /* GitHub dark bg */
+            --card-bg: #161b22;            /* card surface */
+            --topbar-bg: #010409;          /* near-black top bar */
+            --topbar-fg: #f0f3f5;
+
+            --line: #21262d;
+            --line-strong: #30363d;
+            --input-bg: #0d1117;
+
+            --radius: 0px;
+            --shadow-card: 0 1px 0 rgba(255,255,255,0.02) inset, 0 8px 24px rgba(0,0,0,0.35);
+        }
+
+        /* When user explicitly picks light (applied to <html>) */
+        :root[data-theme="light"] {
+            --accent: #b8520a;
             --accent-dark: #8f3f08;
             --accent-soft: #fbf2eb;
-            --ink: #212529;             /* near-black for headings */
-            --text: #666666;            /* muted body */
+            --accent-ring: rgba(184, 82, 10, 0.18);
+            --ink: #212529;
+            --text: #666666;
             --text-light: #999999;
-            --bg: #f8f9fa;              /* light section bg */
+            --bg: #f8f9fa;
             --card-bg: #ffffff;
-            --line: #e9ecef;            /* subtle hairline */
+            --topbar-bg: #212529;
+            --topbar-fg: #ffffff;
+            --line: #e9ecef;
             --line-strong: #dee2e6;
-            --radius: 0px;               /* Banker cards have 0 radius */
+            --input-bg: #ffffff;
+            --shadow-card: none;
         }
 
         * {
@@ -31,21 +61,30 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        html, body { background: var(--bg); }
+        html { background: var(--bg); transition: background-color 0.2s ease; }
         body {
+            background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             font-size: 15px;
             line-height: 1.5;
+            /* Safe-area on notched phones */
+            padding-bottom: env(safe-area-inset-bottom);
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-        /* ===== Top bar (like Banker site navbar) ===== */
+        /* ===== Top bar ===== */
         .topbar {
-            background: var(--ink);
-            color: #fff;
+            background: var(--topbar-bg);
+            color: var(--topbar-fg);
             padding: 14px 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding-top: max(14px, env(safe-area-inset-top));
         }
         .topbar .inner {
             max-width: 480px;
@@ -60,7 +99,7 @@
             font-weight: 800;
             font-size: 16px;
             letter-spacing: 0.4px;
-            color: #fff;
+            color: var(--topbar-fg);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -77,12 +116,38 @@
             text-transform: uppercase;
             margin-left: 4px;
         }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         .topbar .meta {
             font-size: 11px;
             color: rgba(255,255,255,0.55);
             letter-spacing: 0.6px;
             text-transform: uppercase;
         }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            width: 32px; height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--topbar-fg);
+            cursor: pointer;
+            border-radius: 0;
+            padding: 0;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .theme-toggle:hover { background: rgba(255,255,255,0.14); }
+        .theme-toggle:active { transform: translateY(1px); }
+        .theme-toggle svg { width: 16px; height: 16px; display: block; }
+        .theme-toggle .icon-sun { display: none; }
+        :root[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+        :root[data-theme="light"] .theme-toggle .icon-moon { display: none; }
 
         /* ===== Main container ===== */
         main {
@@ -91,6 +156,8 @@
             max-width: 480px;
             margin: 0 auto;
             padding: 32px 20px 48px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
         }
 
         /* ===== Page title ===== */
@@ -126,9 +193,12 @@
             border-radius: var(--radius);
             padding: 24px 22px;
             margin-bottom: 20px;
-            transition: border-color 0.2s ease;
+            box-shadow: var(--shadow-card);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .section.active { border-color: var(--line-strong); }
+        .section.active {
+            border-color: var(--line-strong);
+        }
 
         .section-head {
             display: flex;
@@ -137,11 +207,12 @@
             margin-bottom: 18px;
             padding-bottom: 14px;
             border-bottom: 1px solid var(--line);
+            gap: 8px;
         }
         .section-head h2 {
             font-size: 12px;
             font-weight: 800;
-            letter-spacing: 1.6px;
+            letter-spacing: 1.4px;
             text-transform: uppercase;
             color: var(--ink);
             display: flex;
@@ -153,6 +224,7 @@
             width: 14px; height: 2px;
             background: var(--accent);
             display: inline-block;
+            flex-shrink: 0;
         }
         .section-head .step {
             font-size: 11px;
@@ -160,19 +232,18 @@
             color: var(--text-light);
             letter-spacing: 1px;
             text-transform: uppercase;
+            flex-shrink: 0;
         }
         .section.active .section-head .step { color: var(--accent); }
 
-        /* Status dot */
         .status-dot {
             display: inline-block;
             width: 6px; height: 6px;
             background: var(--line-strong);
             margin-left: 6px;
+            border-radius: 50%;
         }
-        .section.active .status-dot {
-            background: var(--accent);
-        }
+        .section.active .status-dot { background: var(--accent); }
 
         /* ===== Inputs ===== */
         .input-row {
@@ -197,32 +268,31 @@
 
         input {
             width: 100%;
-            padding: 11px 12px;
-            font-size: 16px;
+            padding: 12px 12px;
+            font-size: 16px;           /* 16px prevents iOS zoom-on-focus */
             font-weight: 500;
             color: var(--ink);
-            background: #fff;
+            background: var(--input-bg);
             border: 1px solid var(--line-strong);
             border-radius: var(--radius);
             outline: none;
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
             -moz-appearance: textfield;
+            appearance: textfield;
         }
         input::-webkit-outer-spinbutton,
         input::-webkit-inner-spinbutton { -webkit-appearance: none; margin: 0; }
         input::placeholder { color: var(--text-light); font-weight: 400; }
         input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-soft);
+            box-shadow: 0 0 0 3px var(--accent-ring);
         }
 
-        /* Auto-filled fields (derived values) get a subtle tint */
         input.derived {
             background-color: var(--bg);
             color: var(--ink);
         }
 
-        /* Read-only profit field — accent treatment */
         input[readonly] {
             background-color: var(--accent-soft);
             border-color: var(--accent);
@@ -240,9 +310,9 @@
             font-weight: 700;
             color: var(--text-light);
             pointer-events: none;
+            letter-spacing: 0.5px;
         }
 
-        /* Disabled section (Phase 2 locked) */
         .disabled-section {
             opacity: 0.55;
             pointer-events: none;
@@ -252,7 +322,7 @@
 
         /* ===== Footer ===== */
         footer {
-            background: var(--ink);
+            background: var(--topbar-bg);
             color: rgba(255,255,255,0.55);
             padding: 18px 20px;
             text-align: center;
@@ -262,20 +332,57 @@
         footer .accent-bar {
             height: 2px;
             background: var(--accent);
-            margin-bottom: 14px;
+            margin: 0 auto 14px;
             width: 40px;
-            margin-left: auto;
-            margin-right: auto;
         }
-        footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
 
-        /* Small screens */
+        /* ===== Mobile breakpoint ===== */
         @media (max-width: 480px) {
-            main { padding: 24px 16px 36px; }
-            .section { padding: 20px 16px; }
-            .page-head h1 { font-size: 24px; }
-            .input-row { gap: 12px; }
-            input { font-size: 15px; padding: 10px 11px; }
+            main {
+                padding: 24px 16px 36px;
+                padding-left: max(16px, env(safe-area-inset-left));
+                padding-right: max(16px, env(safe-area-inset-right));
+            }
+            .section { padding: 20px 16px; margin-bottom: 16px; }
+            .page-head { margin-bottom: 22px; }
+            .page-head h1 { font-size: 22px; }
+            .page-head p { font-size: 12.5px; }
+            .input-row {
+                grid-template-columns: 1fr;   /* single column on phones */
+                gap: 12px;
+            }
+            input {
+                font-size: 16px;              /* keep 16px — iOS zoom prevention */
+                padding: 14px 12px;           /* taller touch target */
+            }
+            .topbar .inner { padding: 0 16px; }
+            .brand { font-size: 15px; }
+            .brand small { display: none; }   /* hide sub-label on tight screens */
+            .topbar .meta { display: none; }
+        }
+
+        /* ===== Very small phones (≤360px, e.g. iPhone SE 1st gen, small Androids) ===== */
+        @media (max-width: 360px) {
+            main { padding: 18px 12px 28px; }
+            .section { padding: 16px 12px; }
+            .page-head h1 { font-size: 20px; }
+            .section-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+        }
+
+        /* ===== Landscape phones ===== */
+        @media (max-height: 500px) and (orientation: landscape) {
+            main { padding: 16px 20px 24px; }
+            .page-head { margin-bottom: 16px; }
+            .page-head h1 { font-size: 20px; }
+            .page-head p { display: none; }
+            .section { padding: 14px 16px; margin-bottom: 12px; }
+            .section-head { margin-bottom: 12px; padding-bottom: 10px; }
+            .input-row { margin-bottom: 10px; }
+        }
+
+        /* ===== Reduce motion ===== */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition: none !important; animation: none !important; }
         }
     </style>
 </head>
@@ -289,12 +396,29 @@
                 P&L
                 <small>Calculator</small>
             </a>
-            <span class="meta">Live</span>
+            <div class="topbar-right">
+                <span class="meta">Live</span>
+                <button
+                    class="theme-toggle"
+                    id="themeToggle"
+                    type="button"
+                    aria-label="Toggle color theme"
+                    title="Toggle theme">
+                    <!-- Sun icon (shown when in dark mode) -->
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                    </svg>
+                    <!-- Moon icon (shown when in light mode) -->
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </header>
 
     <main>
-        <!-- ===== Page title ===== -->
         <div class="page-head">
             <div class="eyebrow">Position &amp; Profit</div>
             <h1>P&L Calculator</h1>
@@ -372,14 +496,44 @@
         </section>
     </main>
 
-    <!-- ===== Footer ===== -->
     <footer>
         <div class="accent-bar"></div>
-        Built for clarity. Powered by your numbers.
+        Built to help. Powered by your innovative ideas.
     </footer>
 
     <script>
-        // --- Elements ---
+        // ===== Theme toggle with persistence =====
+        // Dark mode is the default. The toggle lets the user switch to light.
+        // If the user has previously chosen a theme, that choice is restored.
+        (function initTheme() {
+            const STORAGE_KEY = 'ic-theme';
+            const root = document.documentElement; // <html> — vars cascade down to body
+            // The HTML already defaults to dark via :root. Restore a saved preference if any.
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored === 'light' || stored === 'dark') {
+                    root.setAttribute('data-theme', stored);
+                }
+            } catch (e) {}
+
+            document.getElementById('themeToggle').addEventListener('click', function () {
+                const current = root.getAttribute('data-theme') || 'dark';
+                const next = current === 'dark' ? 'light' : 'dark';
+                root.setAttribute('data-theme', next);
+                try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+                // Update browser UI chrome color
+                const tc = next === 'dark' ? '#0d1117' : '#f8f9fa';
+                let m = document.querySelector('meta[name="theme-color"]:not([media])');
+                if (!m) {
+                    m = document.createElement('meta');
+                    m.setAttribute('name','theme-color');
+                    document.head.appendChild(m);
+                }
+                m.setAttribute('content', tc);
+            });
+        })();
+
+        // ===== Calculator logic (unchanged) =====
         const baseInputs = {
             qty: document.getElementById('qty'),
             avgRate: document.getElementById('avgRate'),
@@ -397,7 +551,6 @@
         const baseSection = document.getElementById('baseSection');
         let isCalculating = false;
 
-        // --- Utility ---
         function getVal(input) {
             const v = parseFloat(input.value);
             return isNaN(v) ? null : v;
@@ -412,10 +565,8 @@
             input.value = formatted;
         }
 
-        // --- PHASE 1 LOGIC ---
         function handleBaseCalculation(sourceId) {
             if (isCalculating) return;
-
             const q = getVal(baseInputs.qty);
             const r = getVal(baseInputs.avgRate);
             const a = getVal(baseInputs.invAmt);
@@ -441,7 +592,6 @@
                 baseValid = true;
             }
 
-            // Check if we should enable Phase 2
             if (q !== null && r !== null && a !== null && q > 0 && r > 0) {
                 projSection.classList.remove('disabled-section');
                 baseSection.classList.add('active');
@@ -452,7 +602,6 @@
                     setVal(projInputs.profitEarned, currentExp - a);
                     isCalculating = false;
                 }
-
             } else {
                 projSection.classList.add('disabled-section');
                 baseSection.classList.remove('active');
@@ -460,7 +609,6 @@
             }
         }
 
-        // --- PHASE 2 LOGIC ---
         function handleProjectionCalculation(sourceId) {
             if (projSection.classList.contains('disabled-section')) return;
             if (isCalculating) return;
@@ -480,7 +628,6 @@
             if (sourceId === 'pctIncrease' && p !== null) {
                 const calculatedRate = baseR * (1 + (p / 100));
                 const calculatedExpAmt = calculatedRate * q;
-
                 setVal(projInputs.newRate, calculatedRate);
                 setVal(projInputs.expAmt, calculatedExpAmt);
                 setVal(projInputs.profitEarned, calculatedExpAmt - baseA);
@@ -488,7 +635,6 @@
             else if (sourceId === 'newRate' && newR !== null) {
                 const calculatedPct = ((newR - baseR) / baseR) * 100;
                 const calculatedExpAmt = newR * q;
-
                 setVal(projInputs.pctIncrease, calculatedPct);
                 setVal(projInputs.expAmt, calculatedExpAmt);
                 setVal(projInputs.profitEarned, calculatedExpAmt - baseA);
@@ -496,7 +642,6 @@
             else if (sourceId === 'expAmt' && expA !== null) {
                 const calculatedRate = expA / q;
                 const calculatedPct = ((calculatedRate - baseR) / baseR) * 100;
-
                 setVal(projInputs.newRate, calculatedRate);
                 setVal(projInputs.pctIncrease, calculatedPct);
                 setVal(projInputs.profitEarned, expA - baseA);
@@ -512,7 +657,6 @@
             projInputs.profitEarned.value = '';
         }
 
-        // --- Event Listeners ---
         Object.keys(baseInputs).forEach(key => {
             baseInputs[key].addEventListener('input', () => handleBaseCalculation(key));
         });
