@@ -592,14 +592,20 @@
                 baseValid = true;
             }
 
-            if (q !== null && r !== null && a !== null && q > 0 && r > 0) {
+            // Re-read Inv Amount AFTER the auto-fill above, so Phase 2 unlock
+            // uses the up-to-date value (the original artifact captured `a`
+            // before the auto-fill and left Phase 2 locked until the user
+            // manually re-typed Inv Amount).
+            const currentA = getVal(baseInputs.invAmt);
+
+            if (q !== null && r !== null && currentA !== null && q > 0 && r > 0) {
                 projSection.classList.remove('disabled-section');
                 baseSection.classList.add('active');
 
                 const currentExp = getVal(projInputs.expAmt);
                 if(currentExp !== null) {
                     isCalculating = true;
-                    setVal(projInputs.profitEarned, currentExp - a);
+                    setVal(projInputs.profitEarned, currentExp - currentA);
                     isCalculating = false;
                 }
             } else {
